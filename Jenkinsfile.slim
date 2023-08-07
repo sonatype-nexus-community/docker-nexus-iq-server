@@ -36,8 +36,9 @@ dockerizedBuildPipeline(
   prepare: {
     githubStatusUpdate('pending')
   },
+  pathToDockerfile: "./Dockerfile.slim",
   lint: {
-    hadolint(['./Dockerfile'])
+    hadolint(['./Dockerfile.slim'])
   },
   buildAndTest: {
     def expectations = load 'expectations.groovy'

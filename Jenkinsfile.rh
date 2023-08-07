@@ -13,47 +13,52 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 @Library(['private-pipeline-library', 'jenkins-shared']) _
 
-properties([
-  parameters([
-    string(
-      name: 'version',
-      description: 'Version tag to apply to the image, like 1.140.0-ubi-1.'
-    ),
-  ]),
-])
+import com.sonatype.jenkins.shared.Expectation
 
-node('ubuntu-zion') {
-  try {
-    stage('Preparation') {
-      deleteDir()
-
-      checkout scm
-
-      sh 'docker system prune -a -f'
-      sh '''
-        wget -q -O preflight \
-          https://github.com/redhat-openshift-ecosystem/openshift-preflight/releases/download/1.4.1/preflight-linux-amd64
-        chmod 755 preflight
-      '''
-    }
-    stage('Build') {
-      withCredentials([
-        usernamePassword(
-            credentialsId: 'red-hat-quay-nexus-iq-server',
-            usernameVariable: 'REGISTRY_LOGIN',
-            passwordVariable: 'REGISTRY_PASSWORD'),
-        string(
-            credentialsId: 'red-hat-api-token',
-            variable: 'API_TOKEN')
-      ]) {
-        sh 'PATH="$PATH:." VERSION=$version ./build_red_hat_image.sh'
-      }
-    }
-  } finally {
-    sh 'docker logout'
-    sh 'docker system prune -a -f'
-    sh 'git clean -f && git reset --hard origin/master'
+void configureBranchJob() {
+  String projName = currentBuild.fullProjectName
+  if (projName.endsWith('main')) {
+    properties([
+      disableConcurrentBuilds(),
+      pipelineTriggers([cron('@daily')])
+    ])
   }
 }
+
+String deployBranch = 'main'
+
+configureBranchJob()
+dockerizedBuildPipeline(
+  deployBranch: deployBranch,
+  prepare: {
+    githubStatusUpdate('pending')
+  },
+  pathToDockerfile: "./Dockerfile.rh",
+  lint: {
+    hadolint(['./Dockerfile.rh'])
+  },
+  buildAndTest: {
+    def expectations = load 'expectations.groovy'
+    validateExpectations(expectations.containerExpectations())
+  },
+  testResults: ['**/validate-expectations-results.xml'],
+  vulnerabilityScan: {
+    nexusPolicyEvaluation(
+      iqApplication: 'docker-nexus-iq-server',
+      iqScanPatterns: [[scanPattern: "container:${env.DOCKER_IMAGE_ID}"]],
+      iqStage: 'develop')
+  },
+  onUnstable: {
+    if (env.BRANCH_NAME == deployBranch) {
+      notifyChat(currentBuild: currentBuild, env: env, room: 'iq-builds')
+    } 
+  },
+  onFailure: {
+    if (env.BRANCH_NAME == deployBranch) {
+      notifyChat(currentBuild: currentBuild, env: env, room: 'iq-builds')
+    } 
+  }
+)

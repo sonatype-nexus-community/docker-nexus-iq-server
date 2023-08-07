@@ -1,0 +1,159 @@
+/*
+ * Copyright (c) 2017-present Sonatype, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@Library(['private-pipeline-library', 'jenkins-shared']) _
+
+import com.sonatype.jenkins.shared.Expectation
+
+properties([
+  parameters([
+    run(name: 'releaseBuild',
+        filter: 'SUCCESSFUL',
+        projectName: 'insight/insight-brain/release',
+        description: 'The latest release of IQ Server to build the docker image')
+  ])
+])
+
+String imageName = 'sonatype/nexus-iq-server'
+String version = ''
+String checksum = ''
+
+dockerizedBuildPipeline(
+  deployBranch: 'main',
+  prepare: {
+    githubStatusUpdate('pending')
+    version = getVersionFromBuildName(env.releaseBuild_NAME)
+    checksum = readBuildArtifact('insight/insight-brain/release', env.releaseBuild_NUMBER, "artifacts/nexus-iq-server-${version}-bundle.tar.gz.sha256").trim()
+    updateIQServerVersionAndChecksum(version, checksum)
+    commitAndPushChanges(version)
+  },
+  setVersion: {
+    env['VERSION'] = version.split('-')[0]
+  },
+  lint: {
+    hadolint(['./Dockerfile'])
+  },
+  postPrepareImage: {
+    dir('build') {
+      runSafely "docker save ${imageName} | gzip > docker-nexus-iq-server-${env.VERSION}.tar.gz"
+    }
+  },
+  archiveArtifacts: 'build/*.tar.gz',
+  buildAndTest: {
+    currentBuild.displayName = "#${currentBuild.id} ${imageName}-${env.VERSION}"
+    def expectations = load 'expectations.groovy'
+    validateExpectations(expectations.containerExpectations())
+  },
+  testResults: ['**/validate-expectations-results.xml'],
+  vulnerabilityScan: {
+    nexusPolicyEvaluation(
+      iqApplication: 'docker-nexus-iq-server',
+      iqScanPatterns: [[scanPattern: "container:${env.DOCKER_IMAGE_ID}"]],
+      iqStage: 'release')
+  },
+  deploy: {
+    pushImage(imageName)
+  },
+  postDeploy: {
+    sonatypeZionGitConfig()
+    sshagent(credentials: [sonatypeZionCredentialsId()]) {
+      sh """git tag ${env.VERSION}
+            git push origin ${env.VERSION}"""
+    }
+  },
+  onSuccess: {
+    githubStatusUpdate('success')
+  },
+  onFailure: {
+    githubStatusUpdate('failure')
+  }
+)
+
+void updateIQServerVersionAndChecksum(String version, String checksum) {
+  def dockerFile = readFile(file: 'Dockerfile')
+  def metaShortVersionRegex = /(release=")(\d\.\d{1,3}\.\d)(" \\)/
+  def versionRegex = /(ARG IQ_SERVER_VERSION=)(\d\.\d{1,3}\.\d\-\d{2})/
+  def shaRegex = /(ARG IQ_SERVER_SHA256=)([A-Fa-f0-9]{64})/
+  dockerFile = dockerFile.replaceAll(metaShortVersionRegex,
+      "\$1${version.substring(0, version.indexOf('-'))}\$3")
+  dockerFile = dockerFile.replaceAll(versionRegex, "\$1${version}")
+  dockerFile = dockerFile.replaceAll(shaRegex, "\$1${checksum}")
+
+  writeFile(file: 'Dockerfile', text: dockerFile)
+}
+
+void commitAndPushChanges(String version) {
+  runSafely 'git config --global push.default simple'
+  sonatypeZionGitConfig()
+  sshagent(credentials: [sonatypeZionCredentialsId()]) {
+    runSafely 'git add .'
+    runSafely "git diff --exit-code --cached || git commit -m 'Update IQ Server to ${version}.'"
+
+    // pull and merge any new commits on main so that the push doesn't fail
+    runSafely 'git pull --no-rebase --no-edit origin main'
+    runSafely 'git push origin HEAD:main'
+  }
+}
+
+void pushImage(String imageName) {
+  runSafely "mkdir -p '${env.WORKSPACE_TMP}/.dockerConfig'"
+  runSafely "cp -n '${env.HOME}/.docker/config.json' '${env.WORKSPACE_TMP}/.dockerConfig' || true"
+
+  withEnv(["DOCKER_CONFIG=${env.WORKSPACE_TMP}/.dockerConfig", 'DOCKER_CONTENT_TRUST=1']) {
+    withCredentials([
+      file(credentialsId: 'nexus-iq-server-repository-key', variable: 'NEXUS_IQ_SERVER_REPOSITORY_KEY'),
+      file(credentialsId: 'sonatype-pub', variable: 'SONATYPE_PUB'),
+      file(credentialsId: 'sonatype-key', variable: 'SONATYPE_KEY'),
+      [ $class: 'UsernamePasswordMultiBinding', credentialsId: 'docker-hub-credentials',
+        usernameVariable: 'DOCKERHUB_API_USERNAME', passwordVariable: 'DOCKERHUB_API_PASSWORD']]) {
+
+      runSafely """docker login --username ${env.DOCKERHUB_API_USERNAME} --password ${env.DOCKERHUB_API_PASSWORD}
+                   docker trust key load $NEXUS_IQ_SERVER_REPOSITORY_KEY
+                   docker trust key load $SONATYPE_KEY"""
+
+      // add signer - for this you need signers public key and repository keys password
+      withCredentials([string(credentialsId: 'nexus-iq-server_dct_reg_pw', variable: 'DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE')]) {
+        runSafely "docker trust signer add sonatype ${imageName} --key $SONATYPE_PUB"
+      }
+
+      runSafely "docker tag ${env.DOCKER_IMAGE_ID} ${imageName}:${env.VERSION}"
+      runSafely "docker tag ${env.DOCKER_IMAGE_ID} ${imageName}:latest"
+
+      withCredentials([string(credentialsId: 'sonatype-password', variable: 'DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE')]) {
+        runSafely "docker image push ${imageName}:${env.VERSION}"
+        runSafely "docker image push ${imageName}:latest"
+      }
+
+      String response = runSafely("""curl -X POST https://hub.docker.com/v2/users/login/ \
+                                     -H 'cache-control: no-cache' -H 'content-type: application/json' \
+                                     -d '{ "username": "${env.DOCKERHUB_API_USERNAME}", "password": "${env.DOCKERHUB_API_PASSWORD}" }'
+                                  """, true)
+      def token = readJSON(text: response)
+      def dockerHubApiToken = token.token
+
+      String readme = readFile file: 'README.md', encoding: 'UTF-8'
+      readme = readme.replaceAll("(?s)<!--.*?-->", "")
+      readme = readme.replace("\"", "\\\"")
+      readme = readme.replace("\n", "\\n")
+      readme = readme.replace("\\\$", "\\\\\$")
+
+      httpRequest customHeaders: [[name: 'authorization', value: "JWT ${dockerHubApiToken}"]],
+                  acceptType: 'APPLICATION_JSON', contentType: 'APPLICATION_JSON', httpMode: 'PATCH',
+                  requestBody: "{ \"full_description\": \"${readme}\" }",
+                  url: "https://hub.docker.com/v2/repositories/${imageName}/"
+    }
+  }
+}
