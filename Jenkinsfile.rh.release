@@ -24,9 +24,15 @@ properties([
   ]),
 ])
 
+String version = ''
+String checksum = ''
+
 node('ubuntu-zion') {
   try {
     stage('Preparation') {
+      version = getVersionFromBuildName(env.releaseBuild_NAME)
+      checksum = readBuildArtifact('insight/insight-brain/release', env.releaseBuild_NUMBER, "artifacts/nexus-iq-server-${version}-bundle.tar.gz.sha256").trim()
+
       deleteDir()
 
       checkout scm
@@ -48,7 +54,7 @@ node('ubuntu-zion') {
             credentialsId: 'red-hat-api-token',
             variable: 'API_TOKEN')
       ]) {
-        sh 'PATH="$PATH:." VERSION=$version ./build_and_push_rh_image.sh'
+        sh 'PATH="$PATH:." VERSION=$version CHECKSUM=$checksum ./build_and_push_rh_image.sh'
       }
     }
   } finally {
