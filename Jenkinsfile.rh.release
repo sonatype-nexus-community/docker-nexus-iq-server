@@ -18,9 +18,13 @@
 properties([
   parameters([
     string(
-      name: 'version',
+      name: 'tag',
       description: 'Version tag to apply to the image, like 1.140.0-ubi-1.'
     ),
+    run(name: 'releaseBuild',
+    filter: 'SUCCESSFUL',
+    projectName: 'insight/insight-brain/release',
+    description: 'The latest release of IQ Server to build the docker image')
   ]),
 ])
 
@@ -54,7 +58,7 @@ node('ubuntu-zion') {
             credentialsId: 'red-hat-api-token',
             variable: 'API_TOKEN')
       ]) {
-        sh 'PATH="$PATH:." VERSION=$version CHECKSUM=$checksum ./build_and_push_rh_image.sh'
+        sh 'PATH="$PATH:." VERSION=$version CHECKSUM=$checksum TAG=$tag ./build_and_push_rh_image.sh'
       }
     }
   } finally {

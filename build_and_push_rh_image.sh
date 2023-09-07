@@ -34,7 +34,7 @@ DOCKERFILE=Dockerfile.rh
 CERT_PROJECT_ID=5e61602c2f3c1acdd05f61d3
 
 REPOSITORY="quay.io"
-IMAGE_TAG="${REPOSITORY}/redhat-isv-containers/${CERT_PROJECT_ID}:${VERSION}"
+IMAGE_TAG="${REPOSITORY}/redhat-isv-containers/${CERT_PROJECT_ID}:${TAG}"
 IMAGE_LATEST="${REPOSITORY}/redhat-isv-containers/${CERT_PROJECT_ID}:latest"
 
 AUTHFILE="${HOME}/.docker/config.json"
