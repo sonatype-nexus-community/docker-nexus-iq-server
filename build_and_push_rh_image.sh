@@ -39,7 +39,7 @@ IMAGE_LATEST="${REPOSITORY}/redhat-isv-containers/${CERT_PROJECT_ID}:latest"
 
 AUTHFILE="${HOME}/.docker/config.json"
 
-docker build -f "${DOCKERFILE}" --build-arg IQ_SERVER_VERSION:"${VERSION}" --build-arg IQ_SERVER_SHA256:"${CHECKSUM}"  -t "${IMAGE_TAG}" .
+docker build -f "${DOCKERFILE}" --build-arg IQ_SERVER_VERSION="${VERSION}" --build-arg IQ_SERVER_SHA256="${CHECKSUM}" --build-arg IQ_RELEASE="${RELEASE}" -t "${IMAGE_TAG}" .
 docker tag "${IMAGE_TAG}" "${IMAGE_LATEST}"
 
 docker login "${REPOSITORY}" \
