@@ -46,7 +46,7 @@ dockerizedBuildPipeline(
   },
   vulnerabilityScan: {
     nexusPolicyEvaluation(
-      iqApplication: 'docker-nexus-iq-server',
+      iqApplication: 'docker-nexus-iq-server-slim',
       iqScanPatterns: [[scanPattern: "container:${env.DOCKER_IMAGE_ID}"]],
       iqStage: 'develop')
   },
