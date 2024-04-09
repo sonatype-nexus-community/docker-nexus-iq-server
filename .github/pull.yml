@@ -1,4 +1,4 @@
 version: "1"
 rules:
-  - base: master
+  - base: main 
     upstream: sonatype:main    # change `wei` to the owner of upstream repo
