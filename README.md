@@ -33,6 +33,9 @@ A Dockerfile for Sonatype Nexus IQ Server, based on [Red Hat Universal Base Imag
 
 ## Migration
 
+### Upgrading from Version 177 or Earlier to Version 178 or Later
+Version 1.178.0 of the Docker image changed the base image from [Red Hat UBI (Universal Base Image) Minimal](https://catalog.redhat.com/software/containers/ubi8-minimal/5c64772edd19c77a158ea216) to [OpenJDK 17 runtime image on UBI9](https://catalog.redhat.com/software/containers/ubi9/openjdk-17-runtime/61ee7d45384a3eb331996bee). As part of this, the image will run with Java 17 instead of Java 8.
+
 ### Upgrading from Version 124 or Earlier to Version 125 or Later
 Version 1.125.0 of the Docker image changed the base image from [Red Hat UBI (Universal Base Image)](https://catalog.redhat.com/software/containers/ubi8/ubi/5c359854d70cc534b3a3784e) to [Red Hat UBI (Universal Base Image) Minimal](https://catalog.redhat.com/software/containers/ubi8-minimal/5c64772edd19c77a158ea216). As part of this, `dnf` is replaced by `microdnf` as the package manager.
 
