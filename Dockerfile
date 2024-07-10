@@ -18,8 +18,8 @@
 FROM registry.access.redhat.com/ubi9/openjdk-17:1.20-2
 
 # Build parameters
-ARG IQ_SERVER_VERSION=1.178.0-06
-ARG IQ_SERVER_SHA256=d6f72c8754090f3a80e512a96ce106acca48bc0c66bb495b1e0a3f5515f6e095
+ARG IQ_SERVER_VERSION=1.179.0-01
+ARG IQ_SERVER_SHA256=dbd42966ec944ffb13135392e64b5b240fe178951c54842076e2d76f8ce6c8a1
 ARG TEMP="/tmp/work"
 ARG IQ_HOME="/opt/sonatype/nexus-iq-server"
 ARG SONATYPE_WORK="/sonatype-work"
@@ -33,7 +33,7 @@ LABEL name="Nexus IQ Server image" \
   maintainer="Sonatype <support@sonatype.com>" \
   vendor=Sonatype \
   version="${IQ_SERVER_VERSION}" \
-  release="1.178.0" \
+  release="1.179.0" \
   url="https://www.sonatype.com" \
   summary="The Nexus IQ Server" \
   description="Nexus IQ Server is a policy engine powered by precise intelligence on open source components. \
@@ -98,6 +98,9 @@ RUN rm -rf ${TEMP} \
   && chown -R nexus:nexus ${SONATYPE_WORK} \
   && chown -R nexus:nexus ${CONFIG_HOME} \
   && chown -R nexus:nexus ${LOGS_HOME}
+
+# enabling back support for SHA1 signed certificates
+RUN update-crypto-policies --set DEFAULT:SHA1
 
 # This is where we will store persistent data
 VOLUME ${SONATYPE_WORK}

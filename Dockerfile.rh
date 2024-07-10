@@ -110,6 +110,9 @@ RUN usermod -a -G root nexus \
   && bash /uid_template.sh \
   && chmod 0664 /etc/passwd
 
+# enabling back support for SHA1 signed certificates
+RUN update-crypto-policies --set DEFAULT:SHA1
+
 # This is where we will store persistent data
 VOLUME ${SONATYPE_WORK}
 VOLUME ${LOGS_HOME}
