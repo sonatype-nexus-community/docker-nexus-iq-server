@@ -44,10 +44,11 @@ dockerizedBuildPipeline(
     validateExpectations(expectations.containerExpectations())
   },
   vulnerabilityScan: {
+    def theStage = env.BRANCH_NAME == deployBranch ? 'build' : 'develop'
     nexusPolicyEvaluation(
       iqApplication: 'docker-nexus-iq-server',
       iqScanPatterns: [[scanPattern: "container:${env.DOCKER_IMAGE_ID}"]],
-      iqStage: 'develop')
+      iqStage: theStage)
   },
   onUnstable: {
     if (env.BRANCH_NAME == deployBranch) {

@@ -16,8 +16,8 @@
 FROM registry.access.redhat.com/ubi9/openjdk-17:1.20-2
 
 # Build parameters
-ARG IQ_SERVER_VERSION=1.179.0-01
-ARG IQ_SERVER_SHA256=dbd42966ec944ffb13135392e64b5b240fe178951c54842076e2d76f8ce6c8a1
+ARG IQ_SERVER_VERSION=1.180.0-01
+ARG IQ_SERVER_SHA256=758cb09937278b4223433c4ff3d4aa5b959114f64c2dc1e242159c0e8d999b4e
 ARG TEMP="/tmp/work"
 ARG IQ_HOME="/opt/sonatype/nexus-iq-server"
 ARG SONATYPE_WORK="/sonatype-work"
@@ -31,7 +31,7 @@ LABEL name="Nexus IQ Server image" \
   maintainer="Sonatype <support@sonatype.com>" \
   vendor=Sonatype \
   version="${IQ_SERVER_VERSION}" \
-  release="1.179.0" \
+  release="1.180.0" \
   url="https://www.sonatype.com" \
   summary="The Nexus IQ Server" \
   description="Nexus IQ Server is a policy engine powered by precise intelligence on open source components. \
@@ -114,7 +114,7 @@ HEALTHCHECK CMD curl --fail --silent --show-error http://localhost:8071/healthch
 # Change to nexus user
 USER nexus
 
-ENV JAVA_OPTS="-Djava.util.prefs.userRoot=${SONATYPE_WORK}/javaprefs"
+ENV JAVA_OPTS="--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.security=ALL-UNNAMED --add-opens=java.base/sun.security.rsa=ALL-UNNAMED --add-opens=java.base/sun.security.x509=ALL-UNNAMED --add-opens=java.base/sun.security.util=ALL-UNNAMED --add-opens=java.xml/com.sun.org.apache.xerces.internal.jaxp.datatype=ALL-UNNAMED -Djava.util.prefs.userRoot=${SONATYPE_WORK}/javaprefs"
 ENV SONATYPE_INTERNAL_HOST_SYSTEM=Docker
 
 WORKDIR ${IQ_HOME}

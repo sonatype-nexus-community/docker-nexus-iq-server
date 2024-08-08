@@ -127,7 +127,7 @@ HEALTHCHECK CMD curl --fail --silent --show-error http://localhost:8071/healthch
 # Change to nexus user
 USER nexus
 
-ENV JAVA_OPTS="-Djava.util.prefs.userRoot=${SONATYPE_WORK}/javaprefs"
+ENV JAVA_OPTS="--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.security=ALL-UNNAMED --add-opens=java.base/sun.security.rsa=ALL-UNNAMED --add-opens=java.base/sun.security.x509=ALL-UNNAMED --add-opens=java.base/sun.security.util=ALL-UNNAMED --add-opens=java.xml/com.sun.org.apache.xerces.internal.jaxp.datatype=ALL-UNNAMED -Djava.util.prefs.userRoot=${SONATYPE_WORK}/javaprefs"
 ENV SONATYPE_INTERNAL_HOST_SYSTEM=Docker-RedHat
 
 WORKDIR ${IQ_HOME}
