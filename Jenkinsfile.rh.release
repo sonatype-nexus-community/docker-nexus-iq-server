@@ -34,6 +34,9 @@ node('ubuntu-zion') {
       env.IQ_SERVER_VERSION = getVersionFromBuildName(env.releaseBuild_NAME)
       env.IQ_SERVER_CHECKSUM = readBuildArtifact('insight/insight-brain/release', env.releaseBuild_NUMBER, "artifacts/nexus-iq-server-${env.IQ_SERVER_VERSION}-bundle.tar.gz.sha256").trim()
       env.IQ_RELEASE = env.IQ_SERVER_VERSION.split("-")[0]
+      env.PF_VERSION = sh( returnStdout: true, script:
+          "curl -L -H 'Accept: application/vnd.github+json' https://api.github.com/repos/redhat-openshift-ecosystem/openshift-preflight/git/refs/tags | jq -r '.[-1].ref' | cut -d'/' -f 3"
+          ).trim()
 
       deleteDir()
 
@@ -41,8 +44,9 @@ node('ubuntu-zion') {
 
       sh 'docker system prune -a -f'
       sh '''
+        echo "Downloading preflight ${PF_VERSION} ..."
         wget -q -O preflight \
-          https://github.com/redhat-openshift-ecosystem/openshift-preflight/releases/download/1.9.9/preflight-linux-amd64
+          https://github.com/redhat-openshift-ecosystem/openshift-preflight/releases/download/${PF_VERSION}/preflight-linux-amd64
         chmod 755 preflight
       '''
     }
