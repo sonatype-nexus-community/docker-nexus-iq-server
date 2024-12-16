@@ -17,19 +17,33 @@
 -->
 # Sonatype Nexus IQ Server Docker: sonatype/nexus-iq-server
 
+> ℹ️ As of 16th December 2024, this community project has [graduated](https://contribute.sonatype.com/docs/project-classification/) and is offered as part of Sonatype's commercial offerings - see [here](https://help.sonatype.com/en/iq-2024-release-notes.html#embedded-jdks-in-iq-server-docker-images) and [here](https://hub.docker.com/r/sonatype/nexus-iq-server) for full details.
+>
+> 🚧 This community project will receive no further updates or maintenance.
+
 A Dockerfile for Sonatype Nexus IQ Server, based on [Red Hat Universal Base Image](https://www.redhat.com/en/blog/introducing-red-hat-universal-base-image).
 
-* [Migration](#migration)
-* [Runtime Server Configuation](#runtime-server-configuration)
-* [Persistent Data](#persistent-data)
-* [Running](#running)
-* [Product License Installation](#product-license-installation)
-* [Building the Nexus IQ Server image](#building-the-nexus-iq-server-image)
-  * [Customizing the Default Built config.yml](#customizing-the-default-built-configyml)
-* [Extending the Nexus IQ Server Image](#extending-the-nexus-iq-server-image)
-* [Testing the Dockerfile](#testing-the-dockerfile)
-* [Red Hat Certified Image](#red-hat-certified-image)
-* [Project License](#project-license)
+- [Migration](#migration)
+  - [Upgrading from Version 177 or Earlier to Version 178 or Later](#upgrading-from-version-177-or-earlier-to-version-178-or-later)
+  - [Upgrading from Version 124 or Earlier to Version 125 or Later](#upgrading-from-version-124-or-earlier-to-version-125-or-later)
+  - [Upgrading from Release 118 to Release 119 or Later](#upgrading-from-release-118-to-release-119-or-later)
+  - [Upgrading from Version 117 or Earlier to Version 118 or Later](#upgrading-from-version-117-or-earlier-to-version-118-or-later)
+  - [Upgrading from Version 100 or Earlier to Version 101 or Later](#upgrading-from-version-100-or-earlier-to-version-101-or-later)
+  - [Upgrading from Version 68 or Earlier to Version 69 or Later](#upgrading-from-version-68-or-earlier-to-version-69-or-later)
+- [Runtime Server Configuration](#runtime-server-configuration)
+  - [Runtime Server Configuration for Versions 101 and 102](#runtime-server-configuration-for-versions-101-and-102)
+- [Persistent Data](#persistent-data)
+- [Running](#running)
+- [Product License Installation](#product-license-installation)
+  - [Version 96 or Later](#version-96-or-later)
+  - [Version 95 or Earlier](#version-95-or-earlier)
+- [Building the Nexus IQ Server image](#building-the-nexus-iq-server-image)
+  - [Customizing the Default config.yml](#customizing-the-default-configyml)
+- [Extending the Nexus IQ Server Image](#extending-the-nexus-iq-server-image)
+- [Testing the Dockerfile](#testing-the-dockerfile)
+- [Alternative Slim Docker Image](#alternative-slim-docker-image)
+- [Red Hat Certified Image](#red-hat-certified-image)
+- [Project License](#project-license)
 
 ## Migration
 
